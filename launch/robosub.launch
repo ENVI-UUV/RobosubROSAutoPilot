@@ -1,3 +1,10 @@
 <launch>
+    <include file="$(find mavros)/launch/apm.launch">
+    </include>
+    <include file="$(find video_stream_opencv)/launch/camera.launch" />
+    <include file="$(find video_stream_opencv)/launch/webcam.launch" />
 
+    <node name="robot" pkg="robosub" type="robot_node.py" required="true" output="screen" />
+    <node name="kill_switch" pkg="robosub" type="kill_switch_node.py" respawn="true" output="screen" />
+    
 </launch>
