@@ -34,8 +34,8 @@ class Robot:
         f.write("timestamp (seconds from epoch), downward camera image filename\n")
         f.close()
         mavros.set_namespace()
-        self.boot = False
-        self.start = True
+        self.armed = False
+        self.boot = True
         rospy.wait_for_service("/mavros/cmd/arming")
         
 
@@ -74,11 +74,6 @@ class Robot:
             self.dwn_img_num += 1
 
     def ks_cb(self, msg):
-        rospy.loginfo("in ks_cb")
-        rospy.loginfo(self.armed)
-        if self.boot:
-            self.start = time.time()
-            self.boot = False
         if msg.data == False:
             if self.armed == True:
                 rospy.loginfo("Disarming Pixhawk...")
@@ -89,24 +84,3 @@ class Robot:
                 rospy.loginfo("Arming Pixhawk...")
                 command.arming(True)
                 self.armed = True
-                if time.time() - self.start > 10:
-                    rospy.loginfo("starting course...")
-                    run_course()
-
-    def run_course(self):
-        motor_msg = OverrideRCIn()
-        for i in range(len(motor_msg.channels)):
-            motor_msg.channels[i] = 1500
-        rospy.loginfo("Running")
-        start = time.time()
-        while self.armed and time.time() - start < 15:
-            motor_msg.channels[4] = 1600
-            motor_pub.publish(motor_msg)
-            rospy.sleep(0.1)
-        for i in range(len(motor_msg.channels)):
-            motor_msg.channels[i] = 1500
-        motor_pub.publish(motor_msg)
-            
-
-
-

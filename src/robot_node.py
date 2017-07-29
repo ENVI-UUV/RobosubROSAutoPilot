@@ -1,84 +1,62 @@
 #!/usr/bin/env python
 
 import time
+import os
 import rospy
+from std_msgs.msg import Bool
 from mavros_msgs.msg import OverrideRCIn
 from robot import Robot
 
 
+killswitch = False
+motor_pub = rospy.Publisher("/mavros/rc/override", OverrideRCIn, queue_size = 1000)
+motor_msg = OverrideRCIn()
+lim = len(motor_msg.channels)
+for i in range(lim):
+    motor_msg.channels[i] = 1500
+
+def ks_cb(msg):
+    if msg.data:
+        motor_msg.channels[4] = 1600
+    else:
+        motor_msg.channels[4] = 1500
+
 def main():
     rospy.init_node("robot")
     robosub = Robot()
+    course_sub = rospy.Subscriber("kill_switch", Bool, ks_cb)
+    while motor_pub.get_num_connections() < 1:
+        x=0
+    rospy.loginfo("---------------------TEST!")
+    time.sleep(1)
+    robosub.arm_pixhawk()
+    time.sleep(2)
+    start = time.time()
+    step = True
+    while not rospy.is_shutdown():
+        temp = os.path.exists("/dev/video0") or os.path.exists("/dev/video1") or os.path.exists("/dev/video2")
+        rospy.loginfo(temp)
+        if temp:
+            '''
+            if int(str(time.time())[0]) % 5 == 0:
+                if step:
+                    motor_msg.channels[3] = 1575
+                    step = False
+                else:
+                    #motor_msg.channels[3] = 1500
+                    step = True
+            '''
+            motor_msg.channels[3] = 1505
+            motor_msg.channels[2] = 1500
+            motor_msg.channels[4] = 1650
+        else:
+            motor_msg.channels[3] = 1500
+            motor_msg.channels[2] = 1500
+            motor_msg.channels[4] = 1500
+        motor_pub.publish(motor_msg)
+        time.sleep(0.1)
     rospy.spin()
 
 if __name__=="__main__":
     main()
 
-
-
-
-'''
-
-    motor_pub = rospy.Publisher("/mavros/rc/override", OverrideRCIn, queue_size = 1000)
-    while motor_pub.get_num_connections() < 1:
-        x=0
-    motor_msg = OverrideRCIn()
-    lim = len(motor_msg.channels)
-    for i in range(lim):
-        motor_msg.channels[i] = 1500
-    rospy.loginfo("---------------------TEST!")
-    time.sleep(3)
-    robosub.arm_pixhawk()
-    time.sleep(6)
-    start = time.time()
-    while not rospy.is_shutdown():
-        
-        if time.time() - start < 3:
-            rospy.logwarn("Trying channel 5...")
-            motor_msg.channels[4] = 1750
-        elif time.time() - start < 6:
-            motor_msg.channels[4] = 1250
-        else:
-            for i in range(lim):
-                motor_msg.channels[i] = 1500
-        
-
-        #rospy.loginfo("publishing rcoverride msg")
-        motor_pub.publish(motor_msg)
-        time.sleep(0.1)
-
-
-
-elif time.time() - start < 6:
-    rospy.logwarn("Trying channel 2...")
-    motor_msg.channels[0] = 1500
-    motor_msg.channels[1] = 1600
-elif time.time() - start < 9:
-    rospy.logwarn("Trying channel 3...")
-    motor_msg.channels[1] = 1500
-    motor_msg.channels[2] = 1600
-elif time.time() - start < 12:
-    rospy.logwarn("Trying channel 4...")
-    motor_msg.channels[2] = 1500
-    motor_msg.channels[3] = 1600
-elif time.time() - start < 15:
-    rospy.logwarn("Trying channel 5...")
-    motor_msg.channels[3] = 1500
-    motor_msg.channels[4] = 1600
-elif time.time() - start < 18:
-    rospy.logwarn("Trying channel 6...")
-    motor_msg.channels[4] = 1500
-    motor_msg.channels[5] = 1600
-elif time.time() - start < 21:
-    rospy.logwarn("Trying channel 7...")
-    motor_msg.channels[5] = 1500
-    motor_msg.channels[6] = 1600
-elif time.time() - start < 24:
-    rospy.logwarn("Trying channel 8...")
-            motor_msg.channels[6] = 1500
-            motor_msg.channels[7] = 1600
-        elif time.time() - start < 27:
-            rospy.logwarn("Trying channel 9...")
-            motor_msg.channels[7] = 1500
-            motor_msg.channels[8] = 1600
-'''
