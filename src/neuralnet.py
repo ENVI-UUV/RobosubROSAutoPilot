@@ -13,7 +13,7 @@ from keras.optimizers import Adam
 from keras.applications.inception_v3 import InceptionV3
 import cv2
 import numpy as np
-import rospy
+
 
 def combine_4_image(img1, img2, img3, img4):
     img1 = cv2.resize(img1, (112, 112))
@@ -67,7 +67,26 @@ def build_model(path_to_weights):
     model.compile(loss='mse', optimizer=adam)
     return model
 
+def yaw(input_value):
+    ret_val = .5 * float(input_value) + 1500
+    return int(ret_val)
 
+def dive(input_value):
+    ret_val = 4 * float(input_value) + 1565
+    return int(ret_val)
+
+def scale_key_output(input_value):
+    input_value = float(input_value) - .5
+    ret_val = 150 * input_value * 2 + 1500
+    return ret_val
+
+def forward_backward(forward, backward):
+    return int((forward + backward) / 2)
+
+def left_right(left, right):
+    return int((left + right) / 2)
+
+    
 class inference_runner():
     def __init__(self, path_to_weights):
         self.__trained_model = build_model(path_to_weights)
@@ -82,7 +101,17 @@ class inference_runner():
         norm_img = normalize(combined_img)
         tensor_img = norm_img.reshape((1, 224, 224, 3))
         tensor_positions = scaled_positions.reshape(1, 19)
-        return self.__trained_model.predict([tensor_img, tensor_positions])
+        output = self.__trained_model.predict([tensor_img, tensor_positions])
+        output_l = output.tolist()
+        _yaw = yaw(output_l[0][0])
+        _dive = dive(output_l[0][1])
+        left = scale_key_output(output_l[0][3])
+        right = scale_key_output(output_l[0][5])
+        _left_right = left_right(left, right)
+        forward = scale_key_output(output_l[0][2])
+        backward = scale_key_output(output_l[0][4])
+        _forward_backward = forward_backward(forward, backward)
+        return [_yaw, _dive, _left_right, _forward_backward]
 '''
 # Tests
 img_path = "/home/joe/Dev/robot/auto pilot batch 1/{}"
