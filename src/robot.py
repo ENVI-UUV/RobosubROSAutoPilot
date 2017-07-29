@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os
+import time
 import sys
 import rospy
 import cv2
@@ -9,6 +10,7 @@ from std_msgs.msg import Bool
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from mavros_msgs.srv import CommandBool
+from mavros_msgs.msg import OverrideRCIn
 
 
 class Robot:
@@ -17,6 +19,8 @@ class Robot:
         self.fwd_image_sub = rospy.Subscriber("camera/image_raw", Image, self.fwd_image_cb)
         self.dwn_image_sub = rospy.Subscriber("webcam/image_raw", Image, self.dwn_image_cb)
         self.ks_sub = rospy.Subscriber("kill_switch", Bool, self.ks_cb)
+        self.arm_srv = rospy.ServiceProxy("/mavros/cmd/arming", CommandBool)
+        self.motor_pub = rospy.Publisher("/mavros/rc/override", OverrideRCIn, queue_size = 1000)
         self.bridge = CvBridge()
         self.fwd_img_num = 0
         self.dwn_img_num = 0
@@ -30,11 +34,16 @@ class Robot:
         f.write("timestamp (seconds from epoch), downward camera image filename\n")
         f.close()
         mavros.set_namespace()
+        self.boot = False
+        self.start = True
         rospy.wait_for_service("/mavros/cmd/arming")
-        self.arm_srv = rospy.ServiceProxy("/mavros/cmd/arming", CommandBool)
+        
 
     def arm_pixhawk(self):
-        rospy.logerr(self.arm_srv(True))
+        rospy.loginfo("Arming pixhawk...")
+        #rospy.logerr(self.arm_srv(True))
+        command.arming(True)
+        self.armed = True
 
     def fwd_image_cb(self, msg):
         try:
@@ -65,11 +74,39 @@ class Robot:
             self.dwn_img_num += 1
 
     def ks_cb(self, msg):
+        rospy.loginfo("in ks_cb")
+        rospy.loginfo(self.armed)
+        if self.boot:
+            self.start = time.time()
+            self.boot = False
         if msg.data == False:
-            rospy.loginfo("Disarming Pixhawk...")
-            #result = self.arm_srv(msg.data)
-            #rospy.loginfo(result)
-            command.arming(False)
+            if self.armed == True:
+                rospy.loginfo("Disarming Pixhawk...")
+                command.arming(False)
+                self.armed = False
+        else:
+            if self.armed == False:
+                rospy.loginfo("Arming Pixhawk...")
+                command.arming(True)
+                self.armed = True
+                if time.time() - self.start > 10:
+                    rospy.loginfo("starting course...")
+                    run_course()
+
+    def run_course(self):
+        motor_msg = OverrideRCIn()
+        for i in range(len(motor_msg.channels)):
+            motor_msg.channels[i] = 1500
+        rospy.loginfo("Running")
+        start = time.time()
+        while self.armed and time.time() - start < 15:
+            motor_msg.channels[4] = 1600
+            motor_pub.publish(motor_msg)
+            rospy.sleep(0.1)
+        for i in range(len(motor_msg.channels)):
+            motor_msg.channels[i] = 1500
+        motor_pub.publish(motor_msg)
+            
 
 
 
