@@ -32,6 +32,7 @@ The TX2 is interfaced over USB with a Pixhawk flight controller with Ardusub 3.5
 <code>cd ~/catkin_ws</code>
 <br/>
 <code>git clone https://github.com/ENVI-UUV/RobosubROSAutoPilot.git</code>
+</br>
 <code>catkin_make</code>
 <br/>
 <br/>
