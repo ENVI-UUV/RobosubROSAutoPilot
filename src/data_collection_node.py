@@ -14,8 +14,8 @@ import numpy as np
 
 def main():
     rospy.init_node("robot")
-    robosub = Robot()
-    rospy.loginfo("---------------------TEST!")
+    robosub = Robot(True)
+    rospy.loginfo("---------------------Starting Data Collection!")
     while not rospy.is_shutdown():
         rospy.spin();
 

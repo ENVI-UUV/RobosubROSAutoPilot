@@ -3,5 +3,5 @@
     <include file="$(find video_stream_opencv)/launch/camera.launch" />
     <include file="$(find video_stream_opencv)/launch/webcam.launch" />
 
-    <node name="robot" pkg="robosub" type="robot_node.py" required="true" output="screen" />
+    <node name="robot" pkg="robosub" type="data_collection_node.py" required="true" output="screen" />
 </launch>
